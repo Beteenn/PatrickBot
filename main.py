@@ -1,10 +1,10 @@
+import os
 import time
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 import telegram
-from models import model
-
-bot = telegram.Bot("5386118823:AAFwlYtjxLk8xDDB-ToyZSLXpG5A0fB3vBw")
+from models import MultiItems, User
+import config
 
 # Actions
 
@@ -12,7 +12,7 @@ def teste(update, context):
     print('Reply user')
     add_typing(update, context)
 
-    buttons = model.MultiItems("What would you like to receive?", ["Felinha", "Projetinho"])
+    buttons = MultiItems("What would you like to receive?", ["Felinha", "Projetinho"])
     add_suggested_actions(update, context, buttons)
 
 def add_suggested_actions(update, context, response):
@@ -56,13 +56,26 @@ def get_chat_id(update, context):
 
     return chat_id
 
-def get_message():
-    update = bot.get_updates()[-1]
-    chat_id = update['message']['chat']['id']
-    user_name = update['message']['from_user']['first_name']
-    command_text = update['message']['text']
+def get_user(update):
+    user: User = None
 
-    select_command(chat_id, command_text, user_name)
+    _from = None
+
+    if update.message is not None:
+        _from = update.message.from_user
+    elif update.callback_query is not None:
+        _from = update.callback_query.from_user
+
+    if _from is not None:
+        user = User()
+        user.id = _from.id
+        user.first_name = _from.first_name if _from.first_name is not None else ''
+        user.last_name = _from.last_name if _from.last_name is not None else ''
+        user.lang = _from.language_code if _from.language_code is not None else 'n/a'
+
+    print.info(f'from {user}')
+
+    return user
 
 # Handler
 def main_handler(update, context):
@@ -89,7 +102,7 @@ def main_handler(update, context):
 
 def main():
     print('Start')
-    updater = Updater("5386118823:AAFwlYtjxLk8xDDB-ToyZSLXpG5A0fB3vBw", use_context=True)
+    updater = Updater(config.DefaultConfig.TELEGRAM_TOKEN, use_context=True)
 
     dp = updater.dispatcher
     print('Listening')
